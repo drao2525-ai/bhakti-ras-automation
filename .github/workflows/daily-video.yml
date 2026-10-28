@@ -1,0 +1,13 @@
+name: Bhakti Ras Automation Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 4 * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show success message
+        run: echo "Bhakti Ras automation is working!"
