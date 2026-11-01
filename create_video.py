@@ -1,39 +1,81 @@
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-import os
+import subprocess
+import math
 
-os.makedirs("output", exist_ok=True)
+# Output folder
+OUTPUT = Path("output")
+OUTPUT.mkdir(exist_ok=True)
 
-W, H = 1280, 720
-image = Image.new("RGB", (W, H), (25, 20, 65))
-draw = ImageDraw.Draw(image)
+WIDTH = 1280
+HEIGHT = 720
 
-# Simple devotional background
-for y in range(H):
-    shade = int(25 + 35 * y / H)
-    draw.line((0, y, W, y), fill=(shade, 20, 85))
+# Create devotional background
+img = Image.new("RGB", (WIDTH, HEIGHT))
+draw = ImageDraw.Draw(img)
 
-title = "जय श्री कृष्ण"
-subtitle = "राधे राधे 🙏"
-footer = "Bhakti Ras"
+# Purple-blue gradient background
+for y in range(HEIGHT):
+    for x in range(WIDTH):
+        glow = max(0, 1 - math.sqrt(
+            ((x - 640) / 900) ** 2 +
+            ((y - 330) / 600) ** 2
+        ))
+        r = int(12 + glow * 55)
+        g = int(8 + glow * 15)
+        b = int(35 + glow * 100)
+        draw.point((x, y), fill=(r, g, b))
 
-try:
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    title_font = ImageFont.truetype(font_path, 76)
-    sub_font = ImageFont.truetype(font_path, 42)
-    small_font = ImageFont.truetype(font_path, 28)
-except OSError:
-    title_font = ImageFont.load_default()
-    sub_font = ImageFont.load_default()
-    small_font = ImageFont.load_default()
+# Decorative circles
+for radius in range(100, 350, 40):
+    draw.ellipse(
+        (640-radius, 340-radius, 640+radius, 340+radius),
+        outline=(100, 75, 160),
+        width=2
+    )
 
-def centered_text(text, y, font, fill):
-    box = draw.textbbox((0, 0), text, font=font)
-    x = (W - (box[2] - box[0])) // 2
-    draw.text((x, y), text, font=font, fill=fill)
+# Load fonts
+font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+title_font = ImageFont.truetype(font_path, 76)
+small_font = ImageFont.truetype(font_path, 38)
 
-centered_text(title, 230, title_font, "white")
-centered_text(subtitle, 340, sub_font, "#FFD700")
-centered_text(footer, 620, small_font, "white")
+# Add text
+title = "JAI SHREE KRISHNA"
+subtitle = "BHAKTI RAS"
 
-image.save("output/bhakti_ras_test.png")
-print("Bhakti Ras test image created successfully!")
+bbox = draw.textbbox((0, 0), title, font=title_font)
+draw.text(
+    ((WIDTH - (bbox[2] - bbox[0])) / 2, 285),
+    title,
+    font=title_font,
+    fill=(255, 225, 160)
+)
+
+bbox = draw.textbbox((0, 0), subtitle, font=small_font)
+draw.text(
+    ((WIDTH - (bbox[2] - bbox[0])) / 2, 400),
+    subtitle,
+    font=small_font,
+    fill=(255, 255, 255)
+)
+
+# Save background image
+image_path = OUTPUT / "background.png"
+img.save(image_path)
+
+# Create 15-second MP4 video
+video_path = OUTPUT / "bhakti_ras_video.mp4"
+
+subprocess.run([
+    "ffmpeg", "-y",
+    "-loop", "1",
+    "-i", str(image_path),
+    "-t", "15",
+    "-r", "25",
+    "-vf", "scale=1280:720,format=yuv420p",
+    "-c:v", "libx264",
+    "-pix_fmt", "yuv420p",
+    str(video_path)
+], check=True)
+
+print("Bhakti Ras video created successfully!")
