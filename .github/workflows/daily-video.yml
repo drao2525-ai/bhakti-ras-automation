@@ -1,13 +1,43 @@
-name: Bhakti Ras Automation Test
+
+name: Bhakti Ras Daily Video
 
 on:
   workflow_dispatch:
   schedule:
     - cron: "30 4 * * *"
 
+permissions:
+  contents: read
+
 jobs:
-  test:
+  create-video:
     runs-on: ubuntu-latest
     steps:
-      - name: Show success message
-        run: echo "Bhakti Ras automation is working!"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pillow
+
+      - name: Create devotional video
+        run: python create_video.py
+
+      - name: Save generated video
+        uses: actions/upload-artifact@v4
+        with:
+          name: bhakti-ras-video
+          path: output/
+          if-no-files-found: error
+          retention-days: 3
